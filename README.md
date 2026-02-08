@@ -54,8 +54,7 @@ By completing this course, participants will:
 ## Getting Started
 
 1. **Prerequisites**: Basic understanding of molecular biology, cancer genetics, and genomics concepts
-2. **Software**: Python 3.7+, R, RStudio, Jupyter Notebook (or VSCode)
-3. **Environment Setup**: Use the provided conda environment in [envs/signatures.yml](envs/signatures.yml)
+2. **Software**: Python, R, RStudio, VSCode
 
 ## Module Details
 

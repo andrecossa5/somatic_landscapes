@@ -168,7 +168,7 @@ mamba env create -f signatures.yml -n musical
 mamba activate musical
 ```
 
-Ensure you have a functional environment by firing up the python interpreter, and then assessing:
+Ensure you have a functional environment by firing up the `python` interpreter, and then assessing:
 
 ```python
 import musical

@@ -47,7 +47,7 @@ This session will go through:
 - RStudio
 
 ### Setting up the environment
-Easy one. Just open `dNdScv_tutorial.Rmd` in RStudio and follow the tutorials. Package will be installed as you go.
+Easy one. Just open `dNdScv_tutorial.Rmd` in `RStudio` and follow the tutorials. Package will be installed as you go.
 
 ## References
 
