@@ -31,12 +31,23 @@ Apply your knowledge to compare selection patterns between normal skin and oesop
 - Interpret statistical evidence for positive selection in both cancer and normal tissues
 - Create effective visualizations for selection analysis results
 
-## Files
+## Getting started
+
+This session will go through:
 
 - `dNdScv_tutorial.Rmd` - Comprehensive tutorial with breast cancer data
 - `dNdScv_exercise.Rmd` - Comparative analysis exercise
-- `data/` - Example datasets for analysis
-- `results/` - Output directory for generated results
+
+### Prerequisites
+- Basic understanding of molecular biology and cancer genetics
+- Familiarity with R programming (advantageous)
+- Knowledge of genomics concepts (mutations, selection, etc)
+
+### Software Requirements
+- RStudio
+
+### Setting up the environment
+Easy one. Just open `dNdScv_tutorial.Rmd` in RStudio and follow the tutorials. Package will be installed as you go.
 
 ## References
 

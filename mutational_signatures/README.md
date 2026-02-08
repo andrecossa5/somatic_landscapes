@@ -92,7 +92,7 @@ Recent research has revealed that mutational signatures are not exclusive to can
 
 This expanding understanding suggests that mutational signatures represent fundamental biological processes operating throughout life, with cancer representing an extreme manifestation of these underlying mechanisms.
 
-## Course Plan
+## Course Structure
 
 ### Task #1: Introduction to Mutational Signatures with MuSiCal
 **Objective**: Provide hands-on introduction to mutational signature concepts and basic analysis
@@ -127,17 +127,56 @@ This expanding understanding suggests that mutational signatures represent funda
 - Identify clinically relevant signature associations
 - Develop skills in data interpretation and hypothesis generation
 
+## Getting started
 
-## Getting Started
+This session will go through:
+
+- `intro_mut_sigantures.ipynb` - Comprehensive tutorial with simulated data
+- `pcawg_analysis.ipynb` - Mutational signatures exercise 
 
 ### Prerequisites
 - Basic understanding of molecular biology and cancer genetics
-- Familiarity with Python programming (recommended)
-- Knowledge of genomics concepts (mutations, DNA repair, etc.)
+- Familiarity with python programming (advantageous)
+- Knowledge of genomics concepts (mutations, selection, etc)
 
 ### Software Requirements
-- Python 3.7+
-- Jupyter Notebook
+- mamba
+- VSCode
+- jupyter notebook
+
+### Setting up the environment
+Easy one. We will create and activate a `conda` environment with `mamba`.
+
+First (if not done already) install `mamba`:
+
+```
+wget https://github.com/conda-forge/miniforge/releases/download/25.11.0-1/Miniforge3-25.11.0-1-MacOSX-arm64.sh
+zsh Miniforge3-25.11.0-1-MacOSX-arm64.sh -b -p /mambaforge3
+```
+
+Open another terminal, ensure `mamba` is correctly installed:
+
+```
+mamba -h
+```
+
+Navigate to the path to your cloned `somatic_landscapes` github repo. Then:
+
+```
+cd mutational_signatures/envs
+mamba env create -f signatures.yml -n musical
+mamba activate musical
+```
+
+Ensure you have a functional environment by firing up the python interpreter, and then assessing:
+
+```python
+import musical
+musical.__version__
+```
+
+NB: **make sure** you have chosen this environment when opening the notebooks in VSCode or jupyter.
+
 
 ## References
 

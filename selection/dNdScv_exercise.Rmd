@@ -43,8 +43,8 @@ library(tidyverse)
 
 ```{r load-data}
 # Load the normal skin and oesophagus datasets
-skin = read_tsv("data/dataset_normalskin.tsv")
-esophagus = read_tsv("data/dataset_normaloesophagus.tsv")
+skin <- read_tsv("data/dataset_normalskin.tsv")
+esophagus <- read_tsv("data/dataset_normaloesophagus.tsv")
 ```
 
 ## Dataset Overview

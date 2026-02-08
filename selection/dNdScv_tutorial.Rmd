@@ -52,7 +52,7 @@ First, we need to install and load the necessary libraries:
 # Install
 install.packages("ggrepel")
 install.packages("devtools")
-library(devtools); install_github("im3sanger/dndscv")
+devtools::install_github("im3sanger/dndscv")
 
 # Load
 library(dndscv)
