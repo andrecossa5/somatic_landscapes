@@ -1,0 +1,108 @@
+---
+title: "dN/dS Analysis Exercise: Quantifying Selection in Normal tissues"
+author: "EMBO Course 2026 - Somatic Landscapes"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    fig_width: 10
+    fig_height: 8
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  message = FALSE, 
+  warning = FALSE,
+  fig.align = "center",
+  dpi = 300
+)
+```
+
+# Task explanation
+
+We will now use dNdScv to investigate the selection Landscapes of different normal tissues. The goal is to understand how to interpret dN/dS results, and to explore the patterns of selection across different tissue types.
+
+# Setup and Data Loading
+
+```{r libraries}
+library(dndscv)
+library(ggrepel)
+library(dplyr)
+library(tidyverse)
+```
+
+## Datasets
+
+```{r load-data}
+# Load the normal skin and oesophagus datasets
+skin = read_tsv("data/dataset_normalskin.tsv")
+esophagus = read_tsv("data/dataset_normaloesophagus.tsv")
+```
+
+## Dataset Overview
+
+We are analyzing somatic mutations from two normal human tissues:
+
+**Normal Skin Dataset:**
+- **Source**: Ultra-deep targeted sequencing (~500x coverage)
+- **Samples**: Biopsies from healthy individuals
+- **Strategy**: Targeted sequencing of cancer genes
+- **Biological context**: Sun-exposed tissue with high mutational burden
+
+**Normal Oesophagus Dataset:** 
+- **Source**: Somatic mutations from normal oesophageal epithelium
+- **Samples**: Healthy tissue samples
+- **Strategy**: Whole-exome or targeted sequencing
+- **Biological context**: Barrier tissue exposed to environmental factors
+
+# Exercise Tasks
+
+## Objectives
+
+Your task is to perform a comparative dN/dS analysis between normal skin and oesophagus tissues to understand tissue-specific patterns of somatic selection.
+
+## Specific Tasks
+
+1. **Run dNdScv Analysis**
+   - Perform dN/dS analysis on both datasets
+   - Use appropriate parameters for each dataset (consider targeted vs. genome-wide)
+   - Calculate confidence intervals for significant genes
+
+2. **Compare Global Selection Patterns**
+   - Compare global dN/dS ratios between tissues
+   - Analyze differences in mutation type selection (missense, nonsense, splice)
+   - Investigate quality metrics and model fit
+
+3. **Identify Tissue-Specific Driver Genes**
+   - Find genes under positive selection in each tissue
+   - Compare driver gene lists between tissues
+   - Classify drivers as oncogene-like vs tumor suppressor-like
+
+4. **Visualize Results**
+   - Create forest plots showing dN/dS ratios with confidence intervals
+   - Compare mutation burdens between tissues
+   - Visualize tissue-specific vs shared selection patterns
+
+5. **Biological Interpretation**
+   - Discuss why certain genes might be selected in specific tissues
+   - Consider tissue-specific functions and environmental exposures
+   - Relate findings to known cancer biology and tissue homeostasis
+
+## Expected Insights
+
+Consider these biological questions as you analyze the data:
+
+- Do normal tissues show evidence of positive/negative selection?
+- Are there tissue-specific patterns of driver gene selection?
+
+---
+
+**Begin your analysis below:**

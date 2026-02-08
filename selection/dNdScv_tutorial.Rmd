@@ -1,0 +1,464 @@
+---
+title: "dN/dS Analysis Tutorial: Quantifying Selection in Cancer Genomes"
+author: "EMBO Course 2026 - Somatic Landscapes"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    fig_width: 10
+    fig_height: 8
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  message = FALSE, 
+  warning = FALSE,
+  fig.align = "center",
+  dpi = 300
+)
+```
+
+# Introduction
+
+**dN/dS** (also known as Ka/Ks) is the ratio of the number of non-synonymous substitutions per non-synonymous site (dN) to the number of synonymous substitutions per synonymous site (dS). This ratio quantifies the strength and direction of natural selection acting on protein-coding sequences:
+
+- **dN/dS = 1**: Neutral evolution (no selection)
+- **dN/dS > 1**: Positive selection (advantageous mutations)
+- **dN/dS < 1**: Negative/purifying selection (deleterious mutations)
+
+The **dNdScv** method [@martincorena2017universal] represents a major advancement over traditional dN/dS approaches by:
+
+1. **Trinucleotide context modeling**: Accounts for mutational signatures and biases
+2. **Covariates integration**: Uses epigenomic data to model mutation rate variation
+3. **Gene-specific inference**: Provides statistical tests for individual genes
+4. **Multiple mutation types**: Separate analysis of missense, nonsense, and splice mutations
+
+This tutorial demonstrates how to use dNdScv to identify cancer driver genes and quantify selection in somatic evolution.
+
+# Setup and Data Loading
+
+First, we need to install and load the necessary libraries:
+
+````{r libraries}
+
+# Install
+install.packages("ggrepel")
+install.packages("devtools")
+library(devtools); install_github("im3sanger/dndscv")
+
+# Load
+library(dndscv)
+library(ggrepel)
+library(dplyr)
+library(tidyverse)
+```
+
+## Example Dataset: Simulated Breast Cancer
+
+For this first tutorial, we will use the simulated breast cancer dataset included with dNdScv. This dataset contains somatic mutations from 196 breast cancer samples.
+
+```{r load-data}
+# Load the data
+data("dataset_simbreast", package="dndscv")
+```
+
+## Input Data Format
+
+The dNdScv method requires mutation data in a specific 5-column format:
+
+```{r explore-input-data}
+# Explore input data structure
+mutations %>% head(10)
+cat("Dataset dimensions:", dim(mutations), "\n")
+cat("Number of samples:", length(unique(mutations$sampleID)), "\n")
+cat("Sample distribution:\n")
+mutations$sampleID %>% table() %>% head(10)
+```
+
+**Required columns:**
+
+1. **sampleID**: Unique identifier for each sample/patient
+2. **chr**: Chromosome (1-22, X, Y, or MT)
+3. **pos**: Genomic position (1-based coordinates)
+4. **ref**: Reference allele (A, C, G, T)
+5. **alt**: Alternative allele (A, C, G, T)
+
+**Important considerations:**
+- Only include **independent mutation events** (remove duplicates from related samples)
+- Use **somatic mutations only** (exclude germline variants)
+- Coordinates should match the reference genome (default: GRCh37/hg19)
+
+# The dNdScv Method
+
+## Methodological Overview
+
+dNdScv addresses key limitations of traditional dN/dS methods:
+
+### Trinucleotide Context Dependence
+Different trinucleotide contexts have vastly different mutation rates. For example, CpG dinucleotides mutate ~10x more frequently due to cytosine methylation and spontaneous deamination. dNdScv uses a **192-parameter substitution model** (64 trinucleotides × 3 possible substitutions) to capture this variation.
+
+### Mutation Rate Variation Across Genes
+Genes vary dramatically in their baseline mutation rates due to:
+- **Replication timing**: Late-replicating regions have higher mutation rates
+- **Transcription**: Actively transcribed genes may have different rates
+- **Chromatin structure**: Open vs. closed chromatin affects DNA accessibility
+- **DNA repair efficiency**: Varies across genomic regions
+
+dNdScv uses **epigenomic covariates** and **negative binomial regression** to model this variation.
+
+### Statistical Framework
+- **dNdSloc**: Local model using only synonymous mutations within each gene
+- **dNdScv**: Global model combining local information with genome-wide patterns
+- **Likelihood ratio tests**: Formal statistical testing for positive selection
+- **Multiple testing correction**: Benjamini-Hochberg FDR control
+
+```{r explore-method}
+# Explore function documentation
+?dndscv
+```
+
+# Running dN/dS Analysis
+
+```{r run-dndscv}
+# Run dNdS analysis with output matrices for confidence intervals
+dndsout = dndscv(mutations, outmats=TRUE)
+```
+
+The `outmats=TRUE` parameter is essential for calculating confidence intervals later using the `geneci()` function.
+
+## Understanding dNdScv Output
+
+The dndscv function returns a comprehensive list object containing multiple components:
+
+```{r explore-output}
+dndsout %>% class
+dndsout %>% names()
+dndsout %>% glimpse()
+```
+
+**Key output components:**
+
+- **sel_cv**: Gene-level selection results (dNdScv model)
+- **sel_loc**: Gene-level results (dNdSloc model) 
+- **globaldnds**: Genome-wide dN/dS estimates
+- **annotmuts**: Annotated mutations with functional impact
+- **genemuts**: Observed vs. expected mutation counts per gene
+- **mle_submodel**: Maximum likelihood estimates of substitution rates
+
+# Gene-Level Selection Results
+
+## Significant Genes Under Positive Selection
+
+The primary output for driver discovery is the `sel_cv` table, which contains statistical tests for positive selection:
+
+```{r explore-results}
+# Explore gene-level selection results
+sel_cv = dndsout$sel_cv
+sel_cv %>% head(10)
+
+# Filter significant genes (FDR < 10%)
+signif_genes = sel_cv %>% 
+  filter(qglobal_cv < 0.1) %>% 
+  select(gene_name, qglobal_cv)
+rownames(signif_genes) = NULL
+signif_genes
+```
+
+**Key columns in sel_cv:**
+
+- **n_syn, n_mis, n_non, n_spl**: Observed mutation counts by type
+- **wmis_cv, wnon_cv, wspl_cv**: dN/dS ratios for each mutation type  
+- **pmis_cv, ptrunc_cv, pglobal_cv**: P-values from likelihood ratio tests
+- **qglobal_cv**: FDR-adjusted q-values (recommended threshold: q < 0.1)
+
+**Interpreting dN/dS ratios:**
+- **wmis_cv > 10**: Strong positive selection on missense mutations
+- **wnon_cv > 10**: Strong selection favoring loss-of-function
+- Very high ratios (>50) suggest most observed mutations are functional drivers
+
+## Other Important Outputs
+
+### Global dN/dS Estimates
+
+```{r global-dnds}
+# Global dN/dS ratios across all genes
+dndsout$globaldnds
+```
+
+**Quality control interpretation:**
+- **wall ≈ 1.0-1.3**: Expected for cancer datasets (slight excess of non-synonymous mutations)
+- **wall << 1**: May indicate SNP contamination or inadequate substitution model
+- **wall >> 2**: Possible hypermutation or analytical issues
+
+### Mutation Annotations
+
+```{r mutation-annotations}
+# Annotated mutations with functional consequences
+dndsout$genemuts %>% head(10)
+```
+
+This table shows observed vs. expected mutation counts, providing the foundation for dN/dS calculations.
+
+# Visualization of dN/dS Results
+
+## Forest Plot: dN/dS Ratios with Confidence Intervals
+
+The most informative way to visualize dN/dS results is with a forest plot showing effect sizes and statistical uncertainty:
+
+```{r confidence-intervals}
+# Calculate 95% confidence intervals for significant genes
+ci_results = geneci(
+  dndsout, 
+  gene_list = signif_genes$gene_name, 
+  level = 0.95
+)
+ci_results = ci_results %>% rename(gene_name = gene)
+
+# Merge CI results with selection results
+sel_cv_with_ci = dndsout$sel_cv %>%
+  filter(gene_name %in% signif_genes$gene_name) %>%
+  left_join(ci_results, by = "gene_name") %>%
+  arrange(qglobal_cv)
+```
+
+**Understanding Confidence Intervals:**
+
+The `geneci()` function uses **profile likelihood** to calculate confidence intervals. Wide intervals indicate:
+- Few mutations in the gene (high uncertainty)
+- Need for larger sample sizes
+- Caution in interpreting precise dN/dS values
+
+```{r forest-plot, fig.width=6, fig.height=4}
+# Prepare data for forest plot - focus on missense mutations (wmis)
+forest_data = sel_cv_with_ci %>%
+  filter(wmis_cv > 0) %>%  # Only genes with missense mutations
+  arrange(desc(wmis_cv))
+
+# Create forest plot
+p1 = ggplot(forest_data, aes(x = reorder(gene_name, wmis_cv), y = wmis_cv)) +
+  geom_point(size = 3, color = "#C0392B") +
+  geom_errorbar(aes(ymin = mis_low, ymax = mis_high), 
+                width = 0.2, color = "#C0392B", alpha = 0.8) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray50", alpha = 0.7) +
+  coord_flip() +
+  scale_y_log10(breaks = c(0.1, 1, 10, 100)) +
+  labs(title = "dN/dS Ratios for Missense Mutations with 95% Confidence Intervals",
+       subtitle = "Significant genes (q < 0.1) ordered by effect size",
+       x = "Gene", 
+       y = "dN/dS Ratio (log scale)",
+       caption = "Dashed line indicates neutral evolution (dN/dS = 1)") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 11),
+    panel.grid.minor = element_blank()
+  )
+print(p1)
+```
+
+**Interpretation:**
+- **Point estimates** show the maximum likelihood dN/dS ratio
+- **Error bars** represent 95% confidence intervals
+- **Log scale** is essential due to the wide range of dN/dS values
+- **Genes above the dashed line** show evidence of positive selection
+
+## Comparing Selection Across Mutation Types
+
+Different mutation types may show distinct patterns of selection:
+
+```{r mutation-types-plot, fig.width=6, fig.height=4}
+# Prepare data for comparison plot
+mutation_types_data = sel_cv_with_ci %>%
+  select(gene_name, wmis_cv, wnon_cv, wspl_cv, qglobal_cv) %>%
+  pivot_longer(cols = c(wmis_cv, wnon_cv, wspl_cv), 
+               names_to = "mutation_type", 
+               values_to = "dnds_ratio") %>%
+  filter(dnds_ratio > 0) %>%
+  mutate(mutation_type = case_when(
+    mutation_type == "wmis_cv" ~ "Missense",
+    mutation_type == "wnon_cv" ~ "Nonsense", 
+    mutation_type == "wspl_cv" ~ "Splice site"
+  ))
+
+p2 = ggplot(mutation_types_data, aes(x = reorder(gene_name, -qglobal_cv), 
+                                    y = dnds_ratio, 
+                                    color = mutation_type)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray50", alpha = 0.7) +
+  scale_y_log10(breaks = c(0.1, 1, 10, 100)) +
+  scale_color_manual(values = c("Missense" = "#2E86C1", 
+                               "Nonsense" = "#E74C3C", 
+                               "Splice site" = "#28B463")) +
+  labs(title = "dN/dS Ratios by Mutation Type",
+       subtitle = "Comparison across significant genes ordered by statistical significance",
+       x = "Gene", 
+       y = "dN/dS Ratio (log scale)",
+       color = "Mutation Type") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    axis.text.y = element_text(size = 10),
+    axis.title = element_text(size = 11),
+    legend.title = element_text(size = 11),
+    panel.grid.minor = element_blank()
+  )
+
+print(p2)
+```
+
+**Biological Interpretation:**
+
+- **Missense mutations**: Often show moderate dN/dS (2-20), reflecting gain-of-function changes
+- **Nonsense mutations**: May show very high dN/dS (>50) for tumor suppressors
+- **Splice site mutations**: Similar to nonsense, often inactivating
+- **Genes with high nonsense dN/dS**: Likely tumor suppressors (e.g., TP53, APC)
+- **Genes with high missense dN/dS**: May be oncogenes or tumor suppressors
+
+## Mutation Burden Analysis
+
+Understanding the raw mutation counts helps interpret the statistical significance:
+
+```{r mutation-burden-plot, fig.width=6, fig.height=4}
+# Prepare data for mutation burden plot
+mutation_burden_data = sel_cv_with_ci %>%
+  select(gene_name, n_syn, n_mis, n_non, n_spl, qglobal_cv) %>%
+  mutate(
+    n_nonsyn = n_mis + n_non,  # Total non-synonymous (missense + nonsense)
+    total_muts = n_syn + n_mis + n_non + n_spl
+  ) %>%
+  select(gene_name, n_syn, n_nonsyn, n_spl, total_muts, qglobal_cv) %>%
+  pivot_longer(cols = c(n_syn, n_nonsyn, n_spl), 
+               names_to = "mutation_type", 
+               values_to = "count") %>%
+  mutate(mutation_type = case_when(
+    mutation_type == "n_syn" ~ "Synonymous",
+    mutation_type == "n_nonsyn" ~ "Non-synonymous", 
+    mutation_type == "n_spl" ~ "Splice site"
+  )) %>%
+  filter(count > 0)  # Only show mutation types with counts > 0
+
+# Create stacked bar plot
+p3 = ggplot(mutation_burden_data, aes(x = reorder(gene_name, -qglobal_cv), 
+                                      y = count, 
+                                      fill = mutation_type)) +
+  geom_col(alpha = 0.8, width = 0.7) +
+  scale_fill_manual(values = c("Synonymous" = "#95A5A6", 
+                               "Non-synonymous" = "#E74C3C", 
+                               "Splice site" = "#F39C12")) +
+  labs(title = "Mutation Burden by Type Across Significant Genes",
+       subtitle = "Genes ordered by statistical significance (q-value)",
+       x = "Gene", 
+       y = "Number of Mutations",
+       fill = "Mutation Type") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    axis.text.y = element_text(size = 10),
+    axis.title = element_text(size = 11),
+    legend.title = element_text(size = 11),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
+
+print(p3)
+```
+
+**Key Insights from Mutation Burden:**
+
+1. **Statistical Power**: Genes with more mutations provide stronger statistical evidence
+2. **Selection Patterns**: Compare synonymous vs. non-synonymous ratios
+3. **Functional Impact**: High splice site burden suggests loss-of-function selection
+4. **Driver Classification**: 
+   - **High non-synonymous, low synonymous**: Classic positive selection
+   - **Balanced burden**: Possible neutral evolution with artifacts
+
+# Biological Interpretation
+
+## Cancer Driver Gene Classification
+
+Based on dN/dS patterns, we can classify cancer genes:
+
+```{r driver-classification}
+# Classify drivers based on dN/dS patterns
+driver_classification = sel_cv_with_ci %>%
+  mutate(
+    driver_type = case_when(
+      wmis_cv > wnon_cv & wmis_cv > 5 ~ "Likely Oncogene",
+      wnon_cv > wmis_cv & wnon_cv > 10 ~ "Likely Tumor Suppressor",
+      wmis_cv > 5 & wnon_cv > 5 ~ "Dual Function",
+      TRUE ~ "Unclear Pattern"
+    ),
+    confidence = case_when(
+      qglobal_cv < 0.01 ~ "High",
+      qglobal_cv < 0.05 ~ "Medium", 
+      qglobal_cv < 0.1 ~ "Low",
+      TRUE ~ "Not Significant"
+    )
+  ) %>%
+  select(gene_name, wmis_cv, wnon_cv, qglobal_cv, driver_type, confidence)
+driver_classification
+```
+
+**Driver Gene Patterns:**
+
+- **Oncogenes**: High missense dN/dS (gain-of-function mutations)
+- **Tumor Suppressors**: High nonsense dN/dS (loss-of-function mutations)
+- **Dual Function**: Some genes show both patterns (e.g., TP53 hotspots vs. truncating)
+
+## Quality Control and Diagnostics
+
+```{r quality-control}
+# Check key quality metrics
+cat("=== QUALITY CONTROL METRICS ===\n")
+cat("Global dN/dS (all non-synonymous):", round(dndsout$globaldnds$wall, 3), "\n")
+cat("Global dN/dS 95% CI:", round(dndsout$globaldnds$wall_low, 3), "-", 
+    round(dndsout$globaldnds$wall_high, 3), "\n")
+cat("Theta parameter (overdispersion):", round(dndsout$nbreg$theta, 3), "\n")
+cat("Number of significant genes (q < 0.1):", sum(dndsout$sel_cv$qglobal_cv < 0.1), "\n\n")
+
+# Model diagnostics
+cat("=== MODEL DIAGNOSTICS ===\n")
+cat("Substitution model parameters estimated:", nrow(dndsout$mle_submodel), "\n")
+cat("Negative binomial regression converged:", !is.null(dndsout$nbreg), "\n")
+cat("Samples excluded (hypermutators):", length(dndsout$exclsamples), "\n")
+cat("Mutations excluded:", nrow(dndsout$exclmuts), "\n")
+```
+
+**Quality Indicators:**
+- **Global dN/dS ≈ 1.0-1.3**: Normal for cancer data
+- **Theta > 1**: Good model fit (overdispersion parameter)
+- **Few excluded samples/mutations**: Clean dataset
+
+# Best Practices and Recommendations
+
+## For Publication-Quality Analysis
+
+1. **Always report confidence intervals** using `geneci()` with `outmats=TRUE`
+2. **Use log scale** for dN/dS visualizations due to wide dynamic range
+3. **Check quality metrics** before interpreting results
+4. **Consider biological context** when interpreting dN/dS patterns
+5. **Validate findings** with orthogonal evidence (expression, pathways, etc.)
+
+# References
+
+1. Martincorena I, et al. (2017). Universal patterns of selection in cancer and somatic tissues. *Cell* 171(5):1029-1041.
+2. Greenman C, et al. (2006). Statistical analysis of pathogenicity of somatic mutations in cancer. *Genetics* 173(4):2187-98.
+3. Goldman N, Yang Z (1994). A codon-based model of nucleotide substitution for protein-coding DNA sequences. *Molecular Biology and Evolution* 11:725-736.
+
+---
+
+*This tutorial was created for the EMBO Course 2026: Somatic Landscapes. For more information about dNdScv, visit: https://www.sanger.ac.uk/tool/dndscv/*

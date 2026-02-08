@@ -1,0 +1,114 @@
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# RStudio
+.Rproj.user
+
+# Nextflow
+.nextflow/
+.nextflow.log*
+work/
+timeline.html
+report.html
+trace.txt
+dag.dot
+.nextflow_cache/
+
+# Bioinformatics data files (large files that shouldn't be tracked)
+*.bam
+*.bai
+*.sam
+*.vcf
+*.bcf
+*.fastq
+*.fq
+*.fastq.gz
+*.fq.gz
+*.fa.gz
+*.fasta.gz
+
+# Results and output directories
+results/
+outputs/
+logs/
+tmp/
+temp/
+
+# Docker
+.dockerignore
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Conda
+.conda/
+
+# Node modules (if any JavaScript tools are used)
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Large reference files
+*.genome
+*.gtf.gz
+*.gff.gz
+reference/
+references/

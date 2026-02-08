@@ -1,0 +1,15 @@
+name: musical
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - ipykernel
+  - numpy
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - pandas
+  - seaborn
+  - pip
+  - pip:
+    - git+https://github.com/parklab/MuSiCal.git
