@@ -1,4 +1,4 @@
-# EMBO Predoc Course 2026: Somatic Landascapes
+# EMBL predoc course 2026: Somatic Landascapes
 
 ## Overview
 
